@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.*
+*.secret
+
+# Build output
+dist/
+build/
+*.tgz
+
+# Test & coverage
+coverage/
+.vitest/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Loop runtime artifacts (generated at runtime, not checked in)
+**/state.json
+**/loop-run-log.md
+
+# Internal design spec (not shipped)
+LOOP_ENGINEERING.md
+
+# Gemini / AI tooling
+.gemini/
+wizard.md

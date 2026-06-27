@@ -1,0 +1,19 @@
+{
+  "name": "loop-cost",
+  "version": "0.1.0",
+  "description": "Estimate token and dollar cost before running a loop",
+  "bin": {
+    "loop-cost": "./index.js"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "chalk": "^5.4.1",
+    "fs-extra": "^11.3.0",
+    "js-yaml": "^4.1.0",
+    "cli-table3": "^0.6.5"
+  }
+}

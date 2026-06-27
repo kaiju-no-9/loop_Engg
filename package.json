@@ -1,0 +1,31 @@
+{
+  "name": "loop-library",
+  "version": "0.1.0",
+  "description": "Open source library of reusable AI agent loops",
+  "private": true,
+  "workspaces": [
+    "tools/*"
+  ],
+  "scripts": {
+    "loop-init": "node tools/loop-init/index.js",
+    "loop-audit": "node tools/loop-audit/index.js",
+    "loop-cost": "node tools/loop-cost/index.js",
+    "loop-dashboard": "node tools/loop-dashboard/index.js"
+  },
+  "keywords": [
+    "loop-engineering",
+    "ai-agents",
+    "autonomous",
+    "claude-code",
+    "codex",
+    "cursor",
+    "gemini-cli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.1"
+  }
+}
