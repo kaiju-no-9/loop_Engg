@@ -13,50 +13,48 @@ version: "1.0"
 objective: "Collect git commit logs and pull requests, categorize them, and draft/update the CHANGELOG.md file for the upcoming release tag"
 # The loop succeeds when CHANGELOG.md is successfully updated and validated with release entries.
 
-cadence: "on_release"        # Triggered when a new release tag is pushed or deployment succeeds
+cadence: "on_release"
 
 tools:
-  - bash                    # Run git log, git tag, and extract merge PR details
-  - file_edit               # Read and write CHANGELOG.md and local release draft assets
-  - git                     # Commit and push updated changelog to branch
+  - bash                   
+  - file_edit              
+  - git                   
 
 file_scope:
   allow:
-    - "CHANGELOG.md"        # Primary changelog file
-    - "docs/releases/**"    # Storage directory for historical release note drafts
-    - ".loops/changelog-drafter/**" # Local state, configuration, and draft templates
+    - "CHANGELOG.md"        
+    - "docs/releases/**"    
+    - ".loops/changelog-drafter/**" 
   deny:
-    - "src/**"              # Deny access to source files
-    - "test/**"             # Deny writing to tests
+    - "src/**"             
+    - "test/**"            
     - "tests/**"
-    - "infrastructure/**"   # Never touch infrastructure
-    - ".github/**"          # Never touch CI configuration
+    - "infrastructure/**"  
+    - ".github/**"          
 
 verifier:
   type: script
   command: "git diff --name-only | grep -q CHANGELOG.md"
-  # Loop succeeds if it successfully registers modifications inside CHANGELOG.md.
   timeout_seconds: 120
 
 termination:
   success:
-    - changelog_drafted      # verifier finds modified changelog entry
+    - changelog_drafted    
   failure:
-    - max_iterations: 3      # Changelog compilation is straightforward; max 3 runs
-    - budget_exhausted       # Stops if API usage limits reached
+    - max_iterations: 3      
+    - budget_exhausted       
     - no_progress_detected
 
 budget:
-  max_tokens: 30000          # Low-medium budget
-  max_cost_usd: 1.00         # spend cap per run
-
+  max_tokens: 30000          
+  max_cost_usd: 1.00        
 approval_required_for:
-  - push_to_main             # Review and approve changelog pull requests before merging
+  - push_to_main            
   - delete_files
 
 triggers:
   on_success:
-    - notify-slack           # Post the drafted release notes to team Slack channel
+    - notify-slack           
   on_failure:
     - notify-slack
 
