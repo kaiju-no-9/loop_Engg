@@ -1,193 +1,122 @@
 #!/usr/bin/env node
+const { program } = require('commander');
+const fs = require('fs-extra');
+const path = require('path');
+const { glob } = require('glob');
+const Table = require('cli-table3');
+const dayjs = require('dayjs');
 
-'use strict';
-
-(async () => {
-  const { Command } = require('commander');
+async function main() {
   const chalk = (await import('chalk')).default;
-  const fs = require('fs-extra');
-  const path = require('path');
-  const { glob } = require('glob');
-  const Table = require('cli-table3');
-  const dayjs = require('dayjs');
-  const relativeTime = require('dayjs/plugin/relativeTime');
-  dayjs.extend(relativeTime);
-
-  const program = new Command();
 
   program
-    .name('loop-dashboard')
-    .description('Aggregate state across all loops and render a health dashboard')
-    .version('0.1.0')
-    .argument('<dir>', 'Project directory containing .loops/')
-    .action(async (dir) => {
+    .description('Aggregate state across all loops and render a health report')
+    .argument('<dir>', 'Directory containing .loops')
+    .action(async (targetDir) => {
       try {
-        const absDir = path.resolve(dir);
-        const loopsDir = path.join(absDir, '.loops');
-
-        if (!await fs.pathExists(loopsDir)) {
-          console.error(chalk.red(`\n✗ No .loops/ directory found in ${absDir}`));
-          console.error(chalk.dim('  Run loop-init first to scaffold a loop into your project.\n'));
-          process.exit(1);
+        const loopsDir = path.resolve(targetDir, '.loops');
+        if (!(await fs.pathExists(loopsDir))) {
+            console.error(chalk.red(`No .loops directory found in ${targetDir}`));
+            process.exit(1);
         }
 
-        // Find all state.json files
-        const stateFiles = await glob('*/state.json', { cwd: loopsDir, absolute: false });
-
+        const stateFiles = await glob('*/state.json', { cwd: loopsDir, absolute: true });
+        
         if (stateFiles.length === 0) {
-          console.log(chalk.yellow('\n📊 loop-dashboard'));
-          console.log(chalk.dim(`   Scanning: ${loopsDir}\n`));
-          console.log(chalk.yellow('   No state.json files found in .loops/*/'));
-          console.log(chalk.dim('\n   state.json is auto-generated after each loop run.'));
-          console.log(chalk.dim('   To see the dashboard, run your loops first:\n'));
-          console.log(chalk.dim('     1. Scaffold a loop:  loop-init . --pattern ci-sweeper --tool claude-code'));
-          console.log(chalk.dim('     2. Run the loop:     claude /loop ci-sweeper'));
-          console.log(chalk.dim('     3. Check dashboard:  loop-dashboard .\n'));
-          process.exit(0);
+            console.log(chalk.yellow("No state.json files found. Run some loops first!"));
+            return;
         }
-
-        // Read all state.json files
-        const states = [];
-        for (const stateFile of stateFiles) {
-          const fullPath = path.join(loopsDir, stateFile);
-          try {
-            const content = await fs.readFile(fullPath, 'utf8');
-            const data = JSON.parse(content);
-            states.push(data);
-          } catch (e) {
-            console.log(chalk.yellow(`   ⚠ Could not parse ${stateFile}: ${e.message}`));
-          }
-        }
-
-        if (states.length === 0) {
-          console.log(chalk.yellow('\n⚠ No valid state.json files found.\n'));
-          process.exit(0);
-        }
-
-        // Render dashboard
-        console.log(chalk.blue.bold('\n📊 loop-dashboard'));
-        console.log(chalk.dim(`   Scanning: ${loopsDir}`));
-        console.log(chalk.dim(`   Found:    ${states.length} loop(s)\n`));
 
         const table = new Table({
-          head: [
-            chalk.white.bold('Loop'),
-            chalk.white.bold('Status'),
-            chalk.white.bold('Last Run'),
-            chalk.white.bold('Cost'),
-            chalk.white.bold('Tokens'),
-            chalk.white.bold('Commits'),
-            chalk.white.bold('Human?'),
-          ],
-          colWidths: [22, 14, 18, 12, 12, 10, 10],
-          style: { head: [], border: [] },
+            head: ['Loop', 'Status', 'Last Run', 'Cost ($)', 'Tokens', 'Commits', 'Human Wait?'],
+            style: { head: ['cyan'] }
         });
 
         let totalCost = 0;
         let totalTokens = 0;
         let totalCommits = 0;
-        let waitingCount = 0;
 
-        for (const state of states) {
-          const loopName = state.loop || 'unknown';
-          const status = formatStatus(state.status, chalk);
-          const lastRun = state.run_id
-            ? chalk.dim(state.run_id)
-            : chalk.dim('—');
-          const cost = state.cost_usd !== undefined
-            ? `$${state.cost_usd.toFixed(2)}`
-            : '—';
-          const tokens = state.tokens_used !== undefined
-            ? state.tokens_used.toLocaleString()
-            : '—';
-          const commits = state.commits !== undefined
-            ? state.commits.toString()
-            : '—';
-          const waitingForHuman = state.waiting_for_human;
+        let highestCostVal = -1;
+        let highestCostLoop = 'None';
+        let mostCommitsVal = -1;
+        let mostCommitsLoop = 'None';
+        const waitingLoops = [];
 
-          const humanCol = waitingForHuman
-            ? chalk.yellow.bold('YES')
-            : chalk.dim('no');
+        for (const file of stateFiles) {
+            try {
+                const data = await fs.readJson(file);
+                const loopName = data.loop || path.basename(path.dirname(file));
+                const cost = data.cost_usd || 0;
+                const tokens = data.tokens_used || 0;
+                const commits = data.commits || 0;
 
-          // Apply yellow highlight for rows waiting for human action
-          const row = waitingForHuman
-            ? [
-                chalk.yellow(loopName),
-                status,
-                lastRun,
-                chalk.yellow(cost),
-                chalk.yellow(tokens),
-                chalk.yellow(commits),
-                humanCol,
-              ]
-            : [loopName, status, lastRun, cost, tokens, commits, humanCol];
+                totalCost += cost;
+                totalTokens += tokens;
+                totalCommits += commits;
 
-          table.push(row);
+                if (cost > highestCostVal) {
+                    highestCostVal = cost;
+                    highestCostLoop = loopName;
+                }
+                if (commits > mostCommitsVal) {
+                    mostCommitsVal = commits;
+                    mostCommitsLoop = loopName;
+                }
+                if (data.waiting_for_human) {
+                    waitingLoops.push(loopName);
+                }
+                
+                const needsHuman = data.waiting_for_human ? chalk.bgYellow.black(' YES ') : 'NO';
+                
+                let lastRunDate = 'Unknown';
+                if (data.run_id) {
+                    const match = data.run_id.match(/^(\d{4}-\d{2}-\d{2})/);
+                    if (match) {
+                        lastRunDate = dayjs(match[1]).format('YYYY-MM-DD');
+                    } else {
+                        lastRunDate = dayjs(data.run_id).isValid() ? dayjs(data.run_id).format('YYYY-MM-DD') : data.run_id;
+                    }
+                }
 
-          totalCost += state.cost_usd || 0;
-          totalTokens += state.tokens_used || 0;
-          totalCommits += state.commits || 0;
-          if (waitingForHuman) waitingCount++;
+                table.push([
+                    loopName,
+                    data.status === 'COMPLETE' ? chalk.green(data.status) : (data.status === 'FAILED' ? chalk.red(data.status) : data.status),
+                    lastRunDate,
+                    `$${cost.toFixed(2)}`,
+                    tokens.toLocaleString(),
+                    commits,
+                    needsHuman
+                ]);
+            } catch (e) {
+                console.warn(chalk.yellow(`Could not read ${file}`));
+            }
         }
-
-        // Summary row
-        table.push(
-          [
-            chalk.dim('─'.repeat(20)),
-            chalk.dim('─'.repeat(12)),
-            chalk.dim('─'.repeat(16)),
-            chalk.dim('─'.repeat(10)),
-            chalk.dim('─'.repeat(10)),
-            chalk.dim('─'.repeat(8)),
-            chalk.dim('─'.repeat(8)),
-          ],
-          [
-            chalk.white.bold('TOTAL'),
-            '',
-            '',
-            chalk.green.bold(`$${totalCost.toFixed(2)}`),
-            chalk.cyan.bold(totalTokens.toLocaleString()),
-            chalk.white.bold(totalCommits.toString()),
-            waitingCount > 0 ? chalk.yellow.bold(waitingCount.toString()) : chalk.dim('0'),
-          ]
-        );
-
+        
+        console.log(chalk.blue(`\nLoop Dashboard Overview`));
         console.log(table.toString());
+        
+        console.log(chalk.cyan(`\nTotal Metrics:`));
+        console.log(`- Cost: $${totalCost.toFixed(2)}`);
+        console.log(`- Tokens: ${totalTokens.toLocaleString()}`);
+        console.log(`- Commits: ${totalCommits}`);
 
-        // Footer warnings
-        if (waitingCount > 0) {
-          console.log(chalk.yellow.bold(`\n⚠  ${waitingCount} loop(s) waiting for human action`));
-          const waitingLoops = states.filter(s => s.waiting_for_human);
-          for (const s of waitingLoops) {
-            console.log(chalk.yellow(`   → ${s.loop}: review needed`));
-          }
+        console.log(chalk.cyan(`\nAggregate Insights:`));
+        console.log(`- Highest Cost Loop: ${highestCostLoop} ($${highestCostVal >= 0 ? highestCostVal.toFixed(2) : '0.00'})`);
+        console.log(`- Most Commits Loop: ${mostCommitsLoop} (${mostCommitsVal >= 0 ? mostCommitsVal : 0} commits)`);
+        if (waitingLoops.length > 0) {
+            console.log(`- Loops Waiting for Human Action: ${chalk.yellow(waitingLoops.join(', '))}`);
+        } else {
+            console.log(`- Loops Waiting for Human Action: ${chalk.green('None')}`);
         }
-
         console.log();
 
       } catch (err) {
-        console.error(chalk.red(`\n✗ Fatal error: ${err.message}`));
-        if (process.env.DEBUG) console.error(err.stack);
+        console.error(chalk.red(`Error: ${err.message}`));
         process.exit(1);
       }
     });
 
-  program.parse(process.argv);
+  program.parse();
+}
 
-  /**
-   * Format a status string with color coding.
-   */
-  function formatStatus(status, chalk) {
-    if (!status) return chalk.dim('—');
-    const upper = status.toUpperCase();
-    switch (upper) {
-      case 'COMPLETE':  return chalk.green.bold('COMPLETE');
-      case 'SUCCESS':   return chalk.green.bold('SUCCESS');
-      case 'RUNNING':   return chalk.blue.bold('RUNNING');
-      case 'BLOCKED':   return chalk.yellow.bold('BLOCKED');
-      case 'FAILED':    return chalk.red.bold('FAILED');
-      case 'ERROR':     return chalk.red.bold('ERROR');
-      default:          return chalk.white(status);
-    }
-  }
-})();
+main();

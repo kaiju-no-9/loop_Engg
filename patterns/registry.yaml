@@ -1,0 +1,224 @@
+loops:
+  - name: ci-sweeper
+    domain: backend
+    description: "Fix failing CI tests overnight with minimal diff"
+    cadence: "0 2 * * *"
+    cadence_human: nightly
+    tools: [bash, file_edit, git]
+    skills: [test-runner, git-committer]
+    triggers:
+      on_success: [changelog-drafter]
+      on_failure: [notify-slack]
+    verifier_type: test_suite
+    complexity: medium
+    estimated_cost_per_run_usd: 1.50
+
+  - name: daily-triage
+    domain: general
+    description: "Scan open issues every morning, label and assign them"
+    cadence: "0 8 * * *"
+    cadence_human: daily
+    tools: [bash, file_edit, git, gh]
+    skills: [issue-triager]
+    triggers:
+      on_success: []
+      on_failure: [notify-slack]
+    verifier_type: script
+    complexity: simple
+    estimated_cost_per_run_usd: 0.50
+
+  - name: doc-sync
+    domain: docs
+    description: "Keep docs in sync whenever code changes"
+    cadence: "0 * * * *"
+    cadence_human: hourly
+    tools: [bash, file_edit, git]
+    skills: [doc-writer, git-committer]
+    triggers:
+      on_success: []
+      on_failure: [notify-slack]
+    verifier_type: script
+    complexity: medium
+    estimated_cost_per_run_usd: 1.00
+
+  - name: dependency-updater
+    domain: general
+    description: "Update packages weekly, run tests, open a PR"
+    cadence: "0 4 * * 0"
+    cadence_human: weekly
+    tools: [bash, file_edit, git]
+    skills: [test-runner, pr-reviewer, git-committer]
+    triggers:
+      on_success: [notify-slack]
+      on_failure: [notify-slack]
+    verifier_type: test_suite
+    complexity: medium
+    estimated_cost_per_run_usd: 1.50
+
+  - name: changelog-drafter
+    domain: general
+    description: "Auto-draft release notes from merged PRs"
+    cadence: "event-driven"
+    cadence_human: on_release
+    tools: [bash, file_edit, git, gh]
+    skills: [doc-writer, git-committer]
+    triggers:
+      on_success: []
+      on_failure: [notify-slack]
+    verifier_type: script
+    complexity: simple
+    estimated_cost_per_run_usd: 0.50
+
+  - name: code-repair
+    domain: backend
+    description: "Fix failing tests with minimal diff"
+    cadence: "event-driven"
+    cadence_human: on_test_failure
+    tools: [bash, file_edit, git]
+    skills: [test-runner, git-committer]
+    triggers:
+      on_success: []
+      on_failure: [notify-slack]
+    verifier_type: test_suite
+    complexity: heavy
+    estimated_cost_per_run_usd: 3.00
+
+  - name: ui-test-sweeper
+    domain: frontend
+    description: "Fix broken Playwright/Cypress selectors"
+    cadence: "0 3 * * *"
+    cadence_human: nightly
+    tools: [bash, file_edit, git]
+    skills: [test-runner, git-committer]
+    triggers:
+      on_success: []
+      on_failure: [notify-slack]
+    verifier_type: test_suite
+    complexity: heavy
+    estimated_cost_per_run_usd: 2.50
+
+  - name: api-contract-sync
+    domain: backend
+    description: "Keep OpenAPI spec in sync with route handlers"
+    cadence: "event-driven"
+    cadence_human: on_file_change
+    tools: [bash, file_edit, git]
+    skills: [doc-writer, git-committer]
+    triggers:
+      on_success: [api-consumer-notifier]
+      on_failure: [notify-slack]
+    verifier_type: script
+    complexity: medium
+    estimated_cost_per_run_usd: 1.00
+
+  - name: accessibility-audit
+    domain: frontend
+    description: "Run axe-core, propose and apply fixes"
+    cadence: "0 5 * * 0"
+    cadence_human: weekly
+    tools: [bash, file_edit, git]
+    skills: [test-runner, git-committer]
+    triggers:
+      on_success: []
+      on_failure: [notify-slack]
+    verifier_type: test_suite
+    complexity: heavy
+    estimated_cost_per_run_usd: 2.00
+
+  - name: security-scan
+    domain: backend
+    description: "Scan deps, flag CVEs, open issues"
+    cadence: "0 6 * * 1"
+    cadence_human: weekly
+    tools: [bash, file_edit, gh]
+    skills: [issue-triager]
+    triggers:
+      on_success: []
+      on_failure: [notify-slack]
+    verifier_type: script
+    complexity: medium
+    estimated_cost_per_run_usd: 1.00
+
+  - name: perf-regression-guard
+    domain: frontend
+    description: "Run Lighthouse/k6, flag regressions on PRs"
+    cadence: "event-driven"
+    cadence_human: on_pr
+    tools: [bash, file_edit, gh]
+    skills: [test-runner, pr-reviewer]
+    triggers:
+      on_success: []
+      on_failure: [notify-slack]
+    verifier_type: test_suite
+    complexity: medium
+    estimated_cost_per_run_usd: 1.50
+
+  - name: test-coverage-grower
+    domain: quality
+    description: "Find untested functions, write tests, open PR"
+    cadence: "0 1 * * 6"
+    cadence_human: weekly
+    tools: [bash, file_edit, git, gh]
+    skills: [test-runner, pr-reviewer, git-committer]
+    triggers:
+      on_success: []
+      on_failure: [notify-slack]
+    verifier_type: test_suite
+    complexity: intensive
+    estimated_cost_per_run_usd: 4.00
+
+  - name: stale-branch-janitor
+    domain: general
+    description: "List stale branches, cleans up with approval"
+    cadence: "0 7 * * 0"
+    cadence_human: weekly
+    tools: [bash, git, gh]
+    skills: [issue-triager]
+    triggers:
+      on_success: []
+      on_failure: [notify-slack]
+    verifier_type: script
+    complexity: simple
+    estimated_cost_per_run_usd: 0.50
+
+  - name: migration-writer
+    domain: backend
+    description: "Detect schema changes, generate migrations"
+    cadence: "event-driven"
+    cadence_human: on_schema_change
+    tools: [bash, file_edit, git]
+    skills: [git-committer, pr-reviewer]
+    triggers:
+      on_success: []
+      on_failure: [notify-slack]
+    verifier_type: script
+    complexity: heavy
+    estimated_cost_per_run_usd: 3.00
+
+  - name: api-consumer-notifier
+    domain: backend
+    description: "Detect breaking API changes, notify dependent services"
+    cadence: "event-driven"
+    cadence_human: on_merge
+    tools: [bash, gh]
+    skills: [issue-triager]
+    triggers:
+      on_success: []
+      on_failure: [notify-slack]
+    verifier_type: script
+    complexity: medium
+    estimated_cost_per_run_usd: 1.00
+
+  - name: cost-anomaly-detector
+    domain: infrastructure
+    description: "Reads cloud cost data, flags anomalies"
+    cadence: "0 9 * * *"
+    cadence_human: daily
+    tools: [bash, file_edit, gh]
+    skills: [cost-reporter, issue-triager]
+    triggers:
+      on_success: []
+      on_failure: [notify-slack]
+    verifier_type: script
+    complexity: medium
+    estimated_cost_per_run_usd: 1.00

@@ -1,180 +1,121 @@
 #!/usr/bin/env node
+const { program } = require('commander');
+const fs = require('fs-extra');
+const path = require('path');
+const yaml = require('js-yaml');
+const Table = require('cli-table3');
 
-'use strict';
-
-(async () => {
-  const { Command } = require('commander');
+async function main() {
   const chalk = (await import('chalk')).default;
-  const fs = require('fs-extra');
-  const path = require('path');
-  const yaml = require('js-yaml');
-  const Table = require('cli-table3');
 
-  // Model pricing: cost per 1M tokens
-  const MODEL_PRICING = {
-    'claude-sonnet': { input: 3.00, output: 15.00 },
-    'claude-opus':   { input: 15.00, output: 75.00 },
-    'gpt-4o':        { input: 2.50, output: 10.00 },
-    'gpt-4o-mini':   { input: 0.15, output: 0.60 },
-    'gemini-pro':    { input: 1.25, output: 5.00 },
+  const MODELS = {
+      'claude-sonnet': { input: 3.00, output: 15.00 },
+      'claude-3.5-sonnet': { input: 3.00, output: 15.00 },
+      'claude-3-5-sonnet': { input: 3.00, output: 15.00 },
+      'claude-opus': { input: 15.00, output: 75.00 },
+      'claude-3-opus': { input: 15.00, output: 75.00 },
+      'claude-haiku': { input: 0.25, output: 1.25 },
+      'claude-3-5-haiku': { input: 0.25, output: 1.25 },
+      'gpt-4o': { input: 2.50, output: 10.00 },
+      'gpt-4o-mini': { input: 0.15, output: 0.60 },
+      'gemini-pro': { input: 1.25, output: 5.00 },
+      'gemini-1.5-pro': { input: 1.25, output: 5.00 }
   };
-
-  // Cadence to runs-per-month multiplier
+  
   const CADENCE_MULTIPLIERS = {
-    'nightly':  30,
-    'daily':    30,
-    'weekly':   4,
-    'hourly':   720,
-    'on-pr':    20,
+      'nightly': 30, 'daily': 30, 'weekly': 4, 'hourly': 720,
+      'on-pr': 20, 'on-release': 4, 'on-merge': 20,
+      'on-schema-change': 4, 'on-file-change': 10, 'on-test-failure': 10,
+      'on-commit': 30
   };
-
-  const program = new Command();
 
   program
-    .name('loop-cost')
     .description('Estimate token and dollar cost before running a loop')
-    .version('0.1.0')
-    .requiredOption('--pattern <name>', 'Name of the loop pattern to estimate costs for')
-    .option('--cadence <freq>', 'Override cadence (nightly, daily, weekly, hourly, on-pr)')
-    .option('--model <model>', 'Model to use for pricing', 'claude-sonnet')
+    .requiredOption('--pattern <name>', 'Loop pattern name')
+    .option('--cadence <freq>', 'Frequency (e.g., nightly, weekly)')
+    .option('--model <model>', 'Model name', 'claude-sonnet')
     .action(async (options) => {
       try {
-        const { pattern, model } = options;
-
-        // Validate model
-        if (!MODEL_PRICING[model]) {
-          console.error(chalk.red(`\n✗ Unknown model: "${model}"`));
-          console.error(chalk.dim(`  Available models: ${Object.keys(MODEL_PRICING).join(', ')}\n`));
-          process.exit(1);
+        const loopPath = path.resolve(__dirname, '../../loops', options.pattern);
+        const loopMdPath = path.join(loopPath, 'LOOP.md');
+        
+        if (!(await fs.pathExists(loopMdPath))) {
+            console.error(chalk.red(`Error: LOOP.md not found for pattern '${options.pattern}'`));
+            process.exit(1);
         }
 
-        // Resolve the loop directory
-        const loopsRoot = path.resolve(__dirname, '../../loops/');
-        const loopDir = path.join(loopsRoot, pattern);
-
-        if (!await fs.pathExists(loopDir)) {
-          console.error(chalk.red(`\n✗ Loop pattern "${pattern}" not found in ${loopsRoot}`));
-          process.exit(1);
-        }
-
-        const loopMdPath = path.join(loopDir, 'LOOP.md');
-        if (!await fs.pathExists(loopMdPath)) {
-          console.error(chalk.red(`\n✗ LOOP.md not found in ${loopDir}`));
-          process.exit(1);
-        }
-
-        // Parse LOOP.md
         const content = await fs.readFile(loopMdPath, 'utf8');
-        const yamlMatch = content.match(/```yaml\n([\s\S]*?)```/);
-        let loopConfig = {};
+        const yamlMatch = content.match(/```yaml\n([\s\S]*?)\n```/);
+        
+        let maxTokens = 50000;
+        let maxCost = 2.0;
+        let loopCadence = options.cadence || 'nightly';
+        
         if (yamlMatch) {
-          try {
-            loopConfig = yaml.load(yamlMatch[1]);
-          } catch (e) {
-            console.error(chalk.yellow('⚠ Could not parse YAML block in LOOP.md — using defaults'));
-          }
+            try {
+                const data = yaml.load(yamlMatch[1]);
+                if (data.budget) {
+                    if (data.budget.max_tokens) maxTokens = data.budget.max_tokens;
+                    if (data.budget.max_cost_usd) maxCost = data.budget.max_cost_usd;
+                }
+                if (!options.cadence && data.cadence) {
+                    const c = data.cadence.trim().toLowerCase();
+                    if (c === 'hourly' || c.startsWith('0 * * * *')) {
+                        loopCadence = 'hourly';
+                    } else if (c === 'daily' || c === 'nightly' || c.startsWith('0 2 * * *') || c.startsWith('0 3 * * *') || c.startsWith('0 8 * * *') || c.startsWith('0 9 * * *')) {
+                        loopCadence = 'nightly';
+                    } else if (c === 'weekly' || c.match(/^0 \d+ \* \* [0-7]$/)) {
+                        loopCadence = 'weekly';
+                    } else if (c.includes('pr')) {
+                        loopCadence = 'on-pr';
+                    } else if (c.includes('release')) {
+                        loopCadence = 'on-release';
+                    } else if (c.includes('merge')) {
+                        loopCadence = 'on-merge';
+                    } else if (c.includes('schema') || c.includes('migration')) {
+                        loopCadence = 'on-schema-change';
+                    } else if (c.includes('file') || c.includes('contract')) {
+                        loopCadence = 'on-file-change';
+                    } else if (c.includes('fail') || c.includes('repair') || c.includes('test')) {
+                        loopCadence = 'on-test-failure';
+                    } else if (c.includes('commit') || c.includes('push') || c === 'event-driven') {
+                        loopCadence = 'on-commit';
+                    } else {
+                        loopCadence = 'nightly';
+                    }
+                }
+            } catch (e) {}
         }
-
-        // Extract budget info
-        const maxTokens = (loopConfig.budget && loopConfig.budget.max_tokens) || 50000;
-        const maxCostUsd = (loopConfig.budget && loopConfig.budget.max_cost_usd) || 2.00;
-
-        // Determine cadence
-        let cadenceLabel = options.cadence;
-        if (!cadenceLabel && loopConfig.cadence) {
-          // Infer cadence label from cron expression
-          cadenceLabel = inferCadenceLabel(loopConfig.cadence);
-        }
-        if (!cadenceLabel) cadenceLabel = 'nightly';
-
-        if (!CADENCE_MULTIPLIERS[cadenceLabel]) {
-          console.error(chalk.red(`\n✗ Unknown cadence: "${cadenceLabel}"`));
-          console.error(chalk.dim(`  Available: ${Object.keys(CADENCE_MULTIPLIERS).join(', ')}\n`));
-          process.exit(1);
-        }
-
-        const runsPerMonth = CADENCE_MULTIPLIERS[cadenceLabel];
-        const pricing = MODEL_PRICING[model];
-
-        // Estimate: assume 70% input tokens, 30% output tokens per run
-        const inputTokens = Math.round(maxTokens * 0.7);
-        const outputTokens = Math.round(maxTokens * 0.3);
-
-        const inputCost = (inputTokens / 1_000_000) * pricing.input;
-        const outputCost = (outputTokens / 1_000_000) * pricing.output;
-        const costPerRun = inputCost + outputCost;
-        const costPerMonth = costPerRun * runsPerMonth;
-
-        // Render output
-        console.log(chalk.blue.bold('\n💰 loop-cost'));
-        console.log(chalk.dim(`   Pattern:  ${pattern}`));
-        console.log(chalk.dim(`   Model:    ${model}`));
-        console.log(chalk.dim(`   Cadence:  ${cadenceLabel} (${runsPerMonth} runs/month)`));
-        console.log(chalk.dim(`   Budget:   $${maxCostUsd.toFixed(2)}/run cap, ${maxTokens.toLocaleString()} tokens/run cap`));
-        console.log();
-
+        
+        const modelRates = MODELS[options.model.toLowerCase()] || MODELS['claude-sonnet'];
+        const estCostPerRun = (maxTokens * 0.8 / 1000000 * modelRates.input) + (maxTokens * 0.2 / 1000000 * modelRates.output);
+        const runsPerMonth = CADENCE_MULTIPLIERS[loopCadence] || 30;
+        const estCostPerMonth = estCostPerRun * runsPerMonth;
+        
+        console.log(chalk.blue(`Cost Estimate for ${options.pattern} using ${options.model}`));
+        
         const table = new Table({
-          head: [
-            chalk.white.bold('Metric'),
-            chalk.white.bold('Value'),
-          ],
-          colWidths: [35, 25],
-          style: { head: [], border: [] },
+            head: ['Metric', 'Value'],
+            style: { head: ['cyan'] }
         });
-
+        
         table.push(
-          ['Estimated input tokens/run', chalk.cyan(inputTokens.toLocaleString())],
-          ['Estimated output tokens/run', chalk.cyan(outputTokens.toLocaleString())],
-          ['Total tokens/run', chalk.cyan(maxTokens.toLocaleString())],
-          [chalk.dim('─'.repeat(33)), chalk.dim('─'.repeat(23))],
-          ['Input cost/run', chalk.green(`$${inputCost.toFixed(4)}`)],
-          ['Output cost/run', chalk.green(`$${outputCost.toFixed(4)}`)],
-          ['Total cost/run', chalk.green.bold(`$${costPerRun.toFixed(4)}`)],
-          [chalk.dim('─'.repeat(33)), chalk.dim('─'.repeat(23))],
-          ['Runs/month', chalk.yellow(runsPerMonth.toString())],
-          ['Estimated cost/month', chalk.green.bold(`$${costPerMonth.toFixed(2)}`)],
-          ['Budget cap/run', chalk.red(`$${maxCostUsd.toFixed(2)}`)],
+            ['Max Tokens/Run (Budget)', maxTokens.toLocaleString()],
+            ['Max Cost/Run (Budget)', `$${maxCost.toFixed(2)}`],
+            ['Est. Cost/Run', `$${Math.min(estCostPerRun, maxCost).toFixed(2)}`],
+            ['Cadence', `${loopCadence} (~${runsPerMonth} runs/mo)`],
+            ['Est. Cost/Month', `$${Math.min(estCostPerMonth, maxCost * runsPerMonth).toFixed(2)}`]
         );
-
+        
         console.log(table.toString());
 
-        // Warning if estimated cost exceeds budget
-        if (costPerRun > maxCostUsd) {
-          console.log(chalk.red.bold(`\n⚠  Estimated cost/run ($${costPerRun.toFixed(4)}) exceeds budget cap ($${maxCostUsd.toFixed(2)})!`));
-          console.log(chalk.dim('   The loop will terminate early due to budget_exhausted.\n'));
-        } else {
-          const utilization = ((costPerRun / maxCostUsd) * 100).toFixed(1);
-          console.log(chalk.dim(`\n   Budget utilization: ${utilization}% of $${maxCostUsd.toFixed(2)} cap per run`));
-          console.log();
-        }
-
       } catch (err) {
-        console.error(chalk.red(`\n✗ Fatal error: ${err.message}`));
-        if (process.env.DEBUG) console.error(err.stack);
+        console.error(chalk.red(`Error: ${err.message}`));
         process.exit(1);
       }
     });
 
-  program.parse(process.argv);
+  program.parse();
+}
 
-  /**
-   * Infer a human-readable cadence label from a cron expression.
-   */
-  function inferCadenceLabel(cronExpr) {
-    // Clean inline comments
-    const cron = cronExpr.replace(/#.*$/, '').trim().replace(/^["']|["']$/g, '');
-    const parts = cron.split(/\s+/);
-    if (parts.length < 5) return 'nightly';
-
-    const [minute, hour, dom, month, dow] = parts;
-
-    // Hourly: minute is fixed, hour is *
-    if (hour === '*' && dom === '*' && month === '*' && dow === '*') return 'hourly';
-    // Daily/nightly: specific hour, * for the rest
-    if (hour !== '*' && dom === '*' && month === '*' && dow === '*') return 'nightly';
-    // Weekly: specific dow
-    if (dom === '*' && month === '*' && dow !== '*') return 'weekly';
-
-    return 'nightly';
-  }
-})();
+main();
