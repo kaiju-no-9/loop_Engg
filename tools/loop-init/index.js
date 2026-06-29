@@ -4,6 +4,8 @@ const fs = require('fs-extra');
 const path = require('path');
 const yaml = require('js-yaml');
 
+const RAW_REPO_URL = 'https://raw.githubusercontent.com/kaiju-no-9/loop_Engg/main';
+
 async function main() {
   const chalk = (await import('chalk')).default;
   const inquirer = (await import('inquirer')).default;
@@ -18,26 +20,30 @@ async function main() {
         let patternName = options.pattern;
         let agentTool = options.tool;
 
-        const loopsBaseDir = path.resolve(__dirname, '../../loops');
+        // Fetch patterns from remote registry
+        console.log(chalk.blue('Fetching loop registry from remote repository...'));
+        let patterns = [];
+        try {
+          const registryRes = await fetch(`${RAW_REPO_URL}/patterns/registry.yaml`);
+          if (!registryRes.ok) {
+            throw new Error(`HTTP ${registryRes.status}`);
+          }
+          const registryText = await registryRes.text();
+          const registry = yaml.load(registryText);
+          if (registry && Array.isArray(registry.loops)) {
+            patterns = registry.loops.map(l => l.name);
+          }
+        } catch (e) {
+          console.error(chalk.red(`Failed to fetch loop registry: ${e.message}`));
+          process.exit(1);
+        }
+
+        if (patterns.length === 0) {
+          console.error(chalk.red('Error: No patterns found in loop registry.'));
+          process.exit(1);
+        }
+
         if (!patternName) {
-          if (!(await fs.pathExists(loopsBaseDir))) {
-            console.error(chalk.red('Error: loops/ directory not found in the project.'));
-            process.exit(1);
-          }
-          const folders = await fs.readdir(loopsBaseDir);
-          const patterns = [];
-          for (const file of folders) {
-            const fullPath = path.join(loopsBaseDir, file);
-            if ((await fs.stat(fullPath)).isDirectory()) {
-              patterns.push(file);
-            }
-          }
-
-          if (patterns.length === 0) {
-            console.error(chalk.red('Error: No patterns found in loops/ directory.'));
-            process.exit(1);
-          }
-
           const answers = await inquirer.prompt([
             {
               type: 'list',
@@ -47,6 +53,10 @@ async function main() {
             }
           ]);
           patternName = answers.pattern;
+        } else if (!patterns.includes(patternName)) {
+          console.error(chalk.red(`Error: Pattern '${patternName}' is not a valid pattern in the registry.`));
+          console.log(chalk.yellow(`Available patterns: ${patterns.join(', ')}`));
+          process.exit(1);
         }
 
         if (!agentTool) {
@@ -61,23 +71,24 @@ async function main() {
           agentTool = answers.tool;
         }
 
-        const sourceDir = path.resolve(loopsBaseDir, patternName);
         const destDir = path.resolve(targetDir, '.loops', patternName);
+        console.log(chalk.blue(`Scaffolding loop '${patternName}' into ${destDir}...`));
+        await fs.ensureDir(destDir);
 
-        if (!(await fs.pathExists(sourceDir))) {
-          console.error(chalk.red(`Error: Pattern '${patternName}' not found.`));
-          process.exit(1);
+        const filesToFetch = ['LOOP.md', 'SKILL.md', 'STATE.md'];
+        for (const file of filesToFetch) {
+          const fileUrl = `${RAW_REPO_URL}/loops/${patternName}/${file}`;
+          console.log(chalk.gray(`Fetching ${file}...`));
+          const fileRes = await fetch(fileUrl);
+          if (!fileRes.ok) {
+            throw new Error(`Failed to fetch ${file} for pattern ${patternName} (HTTP ${fileRes.status})`);
+          }
+          const content = await fileRes.text();
+          await fs.writeFile(path.join(destDir, file), content);
         }
 
-        console.log(chalk.blue(`Scaffolding loop '${patternName}' into ${destDir}...`));
-        
-        await fs.ensureDir(destDir);
-        await fs.copy(path.join(sourceDir, 'LOOP.md'), path.join(destDir, 'LOOP.md'));
-        await fs.copy(path.join(sourceDir, 'SKILL.md'), path.join(destDir, 'SKILL.md'));
-        await fs.copy(path.join(sourceDir, 'STATE.md'), path.join(destDir, 'STATE.md'));
-
         // Generate GitHub Actions workflow
-        let loopMdContent = await fs.readFile(path.join(sourceDir, 'LOOP.md'), 'utf8');
+        let loopMdContent = await fs.readFile(path.join(destDir, 'LOOP.md'), 'utf8');
         let cronSchedule = "0 2 * * *"; // default
         
         const yamlMatch = loopMdContent.match(/```yaml\n([\s\S]*?)\n```/);
