@@ -101,7 +101,20 @@ async function main() {
             }
         }
 
-        const workflowContent = `name: ${patternName} Loop\n\non:\n  schedule:\n    - cron: '${cronSchedule}'\n  workflow_dispatch:\n\njobs:\n  run-loop:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Run Loop\n        run: ${agentTool} /loop ${patternName}\n        env:\n          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}\n`;
+        let envBlock = '';
+        if (agentTool === 'claude-code') {
+          envBlock = '          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}';
+        } else if (agentTool === 'gemini-cli') {
+          envBlock = '          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}';
+        } else if (agentTool === 'codex') {
+          envBlock = '          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}';
+        } else if (agentTool === 'cursor') {
+          envBlock = '          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}\n          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}';
+        } else {
+          envBlock = '          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}';
+        }
+
+        const workflowContent = `name: ${patternName} Loop\n\non:\n  schedule:\n    - cron: '${cronSchedule}'\n  workflow_dispatch:\n\njobs:\n  run-loop:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Run Loop\n        run: ${agentTool} /loop ${patternName}\n        env:\n${envBlock}\n`;
         
         const workflowDir = path.resolve(targetDir, '.github/workflows');
         await fs.ensureDir(workflowDir);
