@@ -36,15 +36,29 @@ async function main() {
     .option('--model <model>', 'Model name', 'claude-sonnet')
     .action(async (options) => {
       try {
-        const loopPath = path.resolve(__dirname, '../../loops', options.pattern);
-        const loopMdPath = path.join(loopPath, 'LOOP.md');
-        
-        if (!(await fs.pathExists(loopMdPath))) {
-            console.error(chalk.red(`Error: LOOP.md not found for pattern '${options.pattern}'`));
-            process.exit(1);
-        }
+        const RAW_REPO_URL = 'https://raw.githubusercontent.com/kaiju-no-9/loop_Engg/main';
+        let content = '';
 
-        const content = await fs.readFile(loopMdPath, 'utf8');
+        // Try reading locally from current workspace first, then fall back to remote repo
+        const localLoopPath = path.resolve(process.cwd(), '.loops', options.pattern, 'LOOP.md');
+        
+        if (await fs.pathExists(localLoopPath)) {
+            content = await fs.readFile(localLoopPath, 'utf8');
+        } else {
+            // Attempt to fetch from remote
+            console.log(chalk.gray(`Local loop config not found. Fetching config for '${options.pattern}' from remote catalog...`));
+            try {
+                const res = await fetch(`${RAW_REPO_URL}/loops/${options.pattern}/LOOP.md`);
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                content = await res.text();
+            } catch (err) {
+                console.error(chalk.red(`Error: Could not retrieve configuration for pattern '${options.pattern}' locally or remotely.`));
+                process.exit(1);
+            }
+        }
+        
         const yamlMatch = content.match(/```yaml\n([\s\S]*?)\n```/);
         
         let maxTokens = 50000;
