@@ -35,7 +35,7 @@ Browse the [Loop Catalog](#loop-catalog) below.
 
 ```bash
 # CLI scaffolder (recommended)
-npx loop-init . --pattern ci-sweeper --tool claude-code
+npx loop-engg-init . --pattern ci-sweeper --tool claude-code
 
 # Or manual copy
 cp -r loops/ci-sweeper/ your-project/.loops/ci-sweeper/
@@ -135,10 +135,10 @@ loop-library/
 
 ## CLI Tools
 
-### `loop-init` — Scaffold a loop
+### `loop-engg-init` — Scaffold a loop
 
 ```bash
-npx loop-init . --pattern ci-sweeper --tool claude-code
+npx loop-engg-init . --pattern ci-sweeper --tool claude-code
 ```
 
 ### `loop-audit` — Score readiness
