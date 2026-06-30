@@ -1,6 +1,6 @@
 {
-  "name": "loop-init",
-  "version": "0.1.0",
+  "name": "loop-engg-init",
+  "version": "0.1.1",
   "description": "Scaffold a loop into your project",
   "bin": {
     "loop-init": "./index.js"
