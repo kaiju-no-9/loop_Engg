@@ -1,12 +1,12 @@
 # Loop Library
+<img width="804" height="294" alt="PHOTO-2026-07-01-16-09-49" src="https://github.com/user-attachments/assets/1c94bd63-d1c5-4589-8cb1-77cc8288b386" />
 
-> **Every AI coding tool has the model. None of them have the loop runtime. This is the missing layer.**
+
+> **Every AI coding tool has a model. None of them has
+ the loop runtime. This is the missing layer.**
 
 An open-source library of reusable AI agent loops — pre-designed autonomous workflows you install into your project and run with any major coding agent.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
-[![Loops](https://img.shields.io/badge/loops-16-purple.svg)](loops/)
 
 ---
 
