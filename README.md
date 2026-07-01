@@ -34,7 +34,10 @@ Browse the [Loop Catalog](#loop-catalog) below.
 ### 2. Install it
 
 ```bash
-# CLI scaffolder (recommended)
+# CLI scaffolder — Python wizard (recommended)
+loop-wizard init . --pattern ci-sweeper --tool claude-code
+
+# Alternative: npx (legacy Node.js)
 npx loop-engg-init . --pattern ci-sweeper --tool claude-code
 
 # Or manual copy
@@ -59,7 +62,18 @@ claude /loop ci-sweeper
 
 ### 6. Check results
 
-Open `STATE.md` — it tells you what happened, what changed, and what's next.
+```bash
+# CLI — see what happened, what changed, and what's next
+loop-wizard status ci-sweeper
+
+# Or watch for live updates (auto-refreshes every 30s)
+loop-wizard status ci-sweeper --watch
+
+# Machine-readable output for scripting
+loop-wizard status ci-sweeper --json
+```
+
+You can also open `STATE.md` directly if you prefer.
 
 ---
 
@@ -135,29 +149,37 @@ loop-library/
 
 ## CLI Tools
 
-### `loop-engg-init` — Scaffold a loop
+### `loop-wizard` — Unified Python CLI (recommended)
+
+All tools in one command. Install with `pip install -e tools/loop-wizard`.
+
+```bash
+# Scaffold a loop (interactive 5-question wizard)
+loop-wizard init . --pattern ci-sweeper --tool claude-code
+
+# Score production readiness (0–100)
+loop-wizard audit . --suggest
+
+# Estimate cost before running
+loop-wizard cost --pattern ci-sweeper --cadence nightly
+
+# Aggregate health dashboard
+loop-wizard dashboard .
+
+# Check results — replaces "open STATE.md"
+loop-wizard status ci-sweeper
+loop-wizard status --watch            # auto-refresh
+loop-wizard status --json             # machine-readable
+```
+
+### Legacy Node.js Tools
+
+The original tools still work if you prefer `npx`:
 
 ```bash
 npx loop-engg-init . --pattern ci-sweeper --tool claude-code
-```
-
-### `loop-audit` — Score readiness
-
-```bash
 npx loop-audit . --suggest
-```
-
-Returns a Loop Readiness Score (0–100). Aim for 80+ before running unattended.
-
-### `loop-cost` — Estimate cost
-
-```bash
 npx loop-cost --pattern ci-sweeper --cadence nightly
-```
-
-### `loop-dashboard` — Health overview
-
-```bash
 npx loop-dashboard .
 ```
 

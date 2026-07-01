@@ -1,0 +1,16 @@
+pyproject.toml
+loop_wizard/__init__.py
+loop_wizard/cli.py
+loop_wizard/config.py
+loop_wizard.egg-info/PKG-INFO
+loop_wizard.egg-info/SOURCES.txt
+loop_wizard.egg-info/dependency_links.txt
+loop_wizard.egg-info/entry_points.txt
+loop_wizard.egg-info/requires.txt
+loop_wizard.egg-info/top_level.txt
+loop_wizard/commands/__init__.py
+loop_wizard/commands/audit.py
+loop_wizard/commands/cost.py
+loop_wizard/commands/dashboard.py
+loop_wizard/commands/init.py
+loop_wizard/commands/status.py

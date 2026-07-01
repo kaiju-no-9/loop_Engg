@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "loop-wizard"
+version = "0.1.0"
+description = "Unified CLI wizard for Loop Engineering — scaffold, audit, estimate, and monitor AI agent loops"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+dependencies = [
+    "click>=8.1",
+    "rich>=13.0",
+    "pyyaml>=6.0",
+    "requests>=2.31",
+]
+
+[project.scripts]
+loop-wizard = "loop_wizard.cli:cli"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]

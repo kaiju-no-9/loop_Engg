@@ -1,0 +1,2 @@
+[console_scripts]
+loop-wizard = loop_wizard.cli:cli
