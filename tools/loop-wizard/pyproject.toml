@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "loop-wizard"
-version = "0.1.0"
+version = "0.1.1"
 description = "Unified CLI wizard for Loop Engineering — scaffold, audit, estimate, and monitor AI agent loops"
 readme = "README.md"
 license = {text = "MIT"}
