@@ -1,17 +1,3 @@
-Metadata-Version: 2.4
-Name: loop-wizard
-Version: 0.1.0
-Summary: Unified CLI wizard for Loop Engineering — scaffold, audit, estimate, and monitor AI agent loops
-License: MIT
-Requires-Python: >=3.9
-Description-Content-Type: text/markdown
-Requires-Dist: click>=8.1
-Requires-Dist: rich>=13.0
-Requires-Dist: pyyaml>=6.0
-Requires-Dist: requests>=2.31
-Provides-Extra: dev
-Requires-Dist: pytest>=7.0; extra == "dev"
-
 # Loop Wizard 🪐
 
 The unified command-line tool for **Loop Engineering**. Scaffold, audit, estimate, and monitor autonomous AI agent loops in your projects.
