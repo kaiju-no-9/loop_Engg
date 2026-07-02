@@ -24,9 +24,9 @@ Every loop run generates a `state.json` file alongside `STATE.md`. This is a mac
 ```
 
 ## Using the Dashboard
-The `loop-dashboard` CLI aggregates all `state.json` files to give you a unified view.
+The `loop-wizard dashboard` CLI aggregates all `state.json` files to give you a unified view.
 ```bash
-npx loop-dashboard .
+loop-wizard dashboard .
 ```
 It shows:
 - Total cost across all loops.

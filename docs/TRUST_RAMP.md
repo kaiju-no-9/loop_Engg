@@ -29,7 +29,7 @@ Do not let an autonomous loop commit directly to main on day one. Build trust pr
 ## Week 4: Fully Autonomous
 **Goal:** The loop operates entirely on its own within defined guardrails.
 - **Action:** Set `merge_strategy: auto` (or remove PR requirements for safe operations).
-- **What to check:** Review `STATE.md` and use `loop-dashboard` weekly. Check for cost anomalies or increased iteration counts.
+- **What to check:** Review `STATE.md` and use `loop-wizard dashboard .` weekly. Check for cost anomalies or increased iteration counts.
 - **Outcome:** The loop fixes issues while you sleep.
 
 ## When to Pause and Reassess

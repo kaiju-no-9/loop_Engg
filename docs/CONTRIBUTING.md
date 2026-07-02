@@ -24,14 +24,14 @@ Your `LOOP.md` must have:
 ## Local Testing
 Always test your loop locally before submitting a PR:
 ```bash
-# See the plan without making changes
-npx loop-test <loop-name> --dry-run
+# See the plan without making changes (using the agent command)
+claude /loop <loop-name> --dry-run
 ```
 
 ## Readiness Score
-Run `loop-audit` on your new loop. It must score at least 80/100.
+Run `loop-wizard audit` on your new loop. It must score at least 80/100.
 ```bash
-npx loop-audit . --suggest
+loop-wizard audit . --suggest
 ```
 
 ## Naming Conventions
@@ -39,5 +39,5 @@ npx loop-audit . --suggest
 
 ## Pull Request Process
 1. Open a PR with the title: `feat(loop): add <loop-name>`.
-2. Include the `loop-cost` estimate in your PR description.
+2. Include the `loop-wizard cost` estimate in your PR description.
 3. A maintainer will review your loop against the [DESIGN_CHECKLIST](DESIGN_CHECKLIST.md).

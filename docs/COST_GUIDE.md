@@ -31,7 +31,7 @@ Assuming a Medium loop ($1.00/run):
 3. **Use Cheaper Models**: Downgrade the verifier to a lightweight model.
 
 ## Estimating Cost via CLI
-Use the `loop-cost` tool to estimate expenses before activating a loop:
+Use the `loop-wizard cost` command to estimate expenses before activating a loop:
 ```bash
-npx loop-cost --pattern ci-sweeper --cadence nightly --model claude-sonnet
+loop-wizard cost --pattern ci-sweeper --model claude-sonnet
 ```

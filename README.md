@@ -34,11 +34,11 @@ Browse the [Loop Catalog](#loop-catalog) below.
 ### 2. Install it
 
 ```bash
-# CLI scaffolder — Python wizard (recommended)
-loop-wizard init . --pattern ci-sweeper --tool claude-code
+# Interactive Scaffold — Python wizard (with fuzzy-search pattern picker)
+loop-wizard init .
 
-# Alternative: npx (legacy Node.js)
-npx loop-engg-init . --pattern ci-sweeper --tool claude-code
+# Non-interactive Scaffold (bypassing the picker by specifying pattern and tool)
+loop-wizard init . --pattern ci-sweeper --tool claude-code --yes
 
 # Or manual copy
 cp -r loops/ci-sweeper/ your-project/.loops/ci-sweeper/
@@ -154,33 +154,22 @@ loop-library/
 All tools in one command. Install with `pip install -e tools/loop-wizard`.
 
 ```bash
-# Scaffold a loop (interactive 5-question wizard)
-loop-wizard init . --pattern ci-sweeper --tool claude-code
+# Scaffold a loop (interactive search picker + 5-question setup wizard)
+loop-wizard init .
 
-# Score production readiness (0–100)
+# Score production readiness (0–100) with visual scorecard
 loop-wizard audit . --suggest
 
-# Estimate cost before running
-loop-wizard cost --pattern ci-sweeper --cadence nightly
+# Estimate cost before running with token split allocation gauges
+loop-wizard cost -p ci-sweeper
 
-# Aggregate health dashboard
+# Aggregate health overview dashboard
 loop-wizard dashboard .
 
-# Check results — replaces "open STATE.md"
+# Check loop execution results with status panel
 loop-wizard status ci-sweeper
-loop-wizard status --watch            # auto-refresh
-loop-wizard status --json             # machine-readable
-```
-
-### Legacy Node.js Tools
-
-The original tools still work if you prefer `npx`:
-
-```bash
-npx loop-engg-init . --pattern ci-sweeper --tool claude-code
-npx loop-audit . --suggest
-npx loop-cost --pattern ci-sweeper --cadence nightly
-npx loop-dashboard .
+loop-wizard status ci-sweeper --watch   # live auto-refresh every 30s
+loop-wizard status ci-sweeper --json    # machine-readable
 ```
 
 ---
