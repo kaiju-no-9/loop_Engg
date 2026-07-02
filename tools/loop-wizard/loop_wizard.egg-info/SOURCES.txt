@@ -13,4 +13,6 @@ loop_wizard/commands/audit.py
 loop_wizard/commands/cost.py
 loop_wizard/commands/dashboard.py
 loop_wizard/commands/init.py
+loop_wizard/commands/picker.py
 loop_wizard/commands/status.py
+tests/test_picker.py

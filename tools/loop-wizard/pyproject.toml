@@ -18,6 +18,7 @@ dependencies = [
 
 [project.scripts]
 loop-wizard = "loop_wizard.cli:cli"
+loopwiz = "loop_wizard.cli:loopwiz_cli"
 
 [project.optional-dependencies]
 dev = [

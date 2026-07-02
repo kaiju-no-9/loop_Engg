@@ -527,6 +527,11 @@ def init_cmd(target_dir, pattern, agent_tool, non_interactive, overrides, reconf
     Asks 5 questions, writes LOOP.md, SKILL.md, STATE.md, and a GitHub Actions
     workflow — all without you opening a single config file.
     """
+    run_init_flow(target_dir, pattern, agent_tool, non_interactive, overrides, reconfigure)
+
+
+def run_init_flow(target_dir, pattern, agent_tool, non_interactive, overrides, reconfigure):
+    """Programmatic entry point for the scaffold initialization flow."""
     target_dir = os.path.abspath(target_dir)
 
     # Parse overrides
@@ -563,25 +568,16 @@ def init_cmd(target_dir, pattern, agent_tool, non_interactive, overrides, reconf
 
     # ── Select pattern ──────────────────────────────────────────────
     if not pattern:
-        if non_interactive:
+        import sys
+        if non_interactive or not sys.stdin.isatty():
             console.print("[red]--pattern is required in non-interactive mode.[/red]")
             raise click.Abort()
 
-        console.print("\n[bold]Available loop patterns:[/bold]\n")
-        table = Table(show_header=True, header_style="bold cyan")
-        table.add_column("#", style="dim", width=4)
-        table.add_column("Pattern")
-        table.add_column("Description")
-        table.add_column("Domain", style="dim")
-        for i, loop in enumerate(loops, 1):
-            table.add_row(str(i), loop["name"], loop.get("description", ""), loop.get("domain", ""))
-        console.print(table)
-
-        choice = Prompt.ask(
-            "\nSelect a pattern",
-            choices=[str(i) for i in range(1, len(loops) + 1)],
-        )
-        pattern = loops[int(choice) - 1]["name"]
+        from loop_wizard.commands.picker import run_picker
+        selected = run_picker(loops)
+        if not selected:
+            raise click.Abort()
+        pattern = selected
     elif pattern not in pattern_names:
         console.print(f"[red]Pattern '{pattern}' not found.[/red]")
         console.print(f"[yellow]Available: {', '.join(pattern_names)}[/yellow]")
