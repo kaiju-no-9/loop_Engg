@@ -5,6 +5,7 @@ RAW_REPO_URL = "https://raw.githubusercontent.com/kaiju-no-9/loop_Engg/main"
 
 # Model pricing: cost per 1M tokens (USD)
 MODELS = {
+    # Anthropic
     "claude-sonnet": {"input": 3.00, "output": 15.00},
     "claude-3.5-sonnet": {"input": 3.00, "output": 15.00},
     "claude-3-5-sonnet": {"input": 3.00, "output": 15.00},
@@ -12,11 +13,17 @@ MODELS = {
     "claude-3-opus": {"input": 15.00, "output": 75.00},
     "claude-haiku": {"input": 0.25, "output": 1.25},
     "claude-3-5-haiku": {"input": 0.25, "output": 1.25},
+    # OpenAI
     "gpt-4o": {"input": 2.50, "output": 10.00},
     "gpt-4o-mini": {"input": 0.15, "output": 0.60},
+    # Google
     "gemini-pro": {"input": 1.25, "output": 5.00},
     "gemini-1.5-pro": {"input": 1.25, "output": 5.00},
     "gemini-2.5-pro": {"input": 1.25, "output": 10.00},
+    # Google DeepMind — Antigravity
+    "gemini-2.5-flash": {"input": 0.30, "output": 2.50},
+    # OpenCode (model-agnostic — use the underlying provider's pricing)
+    "opencode-default": {"input": 1.25, "output": 5.00},
 }
 
 # Cadence label -> estimated runs per month
@@ -58,17 +65,91 @@ CADENCE_PRESETS = [
     },
 ]
 
-# Supported agent tools
-AGENT_TOOLS = ["claude-code", "gemini-cli", "cursor", "codex"]
+# Supported agent tools (display order in the interactive picker)
+AGENT_TOOLS = [
+    "claude-code",
+    "claude",
+    "gemini-cli",
+    "antigravity",
+    "cursor",
+    "opencode",
+    "codex",
+]
 
 # Agent tool -> environment variable for GitHub Actions
 AGENT_ENV_VARS = {
-    "claude-code": {"ANTHROPIC_API_KEY": "${{ secrets.ANTHROPIC_API_KEY }}"},
-    "gemini-cli": {"GEMINI_API_KEY": "${{ secrets.GEMINI_API_KEY }}"},
-    "codex": {"OPENAI_API_KEY": "${{ secrets.OPENAI_API_KEY }}"},
+    "claude-code": {
+        "ANTHROPIC_API_KEY": "${{ secrets.ANTHROPIC_API_KEY }}",
+    },
+    "claude": {
+        "ANTHROPIC_API_KEY": "${{ secrets.ANTHROPIC_API_KEY }}",
+    },
+    "gemini-cli": {
+        "GEMINI_API_KEY": "${{ secrets.GEMINI_API_KEY }}",
+    },
+    "antigravity": {
+        # Antigravity is powered by Google DeepMind's Gemini models
+        "GOOGLE_API_KEY": "${{ secrets.GOOGLE_API_KEY }}",
+        "GEMINI_API_KEY": "${{ secrets.GEMINI_API_KEY }}",
+    },
     "cursor": {
         "OPENAI_API_KEY": "${{ secrets.OPENAI_API_KEY }}",
         "ANTHROPIC_API_KEY": "${{ secrets.ANTHROPIC_API_KEY }}",
+    },
+    "opencode": {
+        # OpenCode is model-agnostic — set the key for your chosen provider
+        "OPENCODE_API_KEY": "${{ secrets.OPENCODE_API_KEY }}",
+        "ANTHROPIC_API_KEY": "${{ secrets.ANTHROPIC_API_KEY }}",
+        "OPENAI_API_KEY": "${{ secrets.OPENAI_API_KEY }}",
+    },
+    "codex": {
+        "OPENAI_API_KEY": "${{ secrets.OPENAI_API_KEY }}",
+    },
+}
+
+# Rich metadata for each agent tool: shown in the interactive wizard picker
+AGENT_METADATA = {
+    "claude-code": {
+        "icon": "🤖",
+        "provider": "Anthropic",
+        "description": "Terminal-native agentic coding tool by Anthropic",
+        "run_cmd": "claude /loop {pattern}",
+    },
+    "claude": {
+        "icon": "⚡",
+        "provider": "Anthropic",
+        "description": "Claude CLI — lightweight Anthropic agent",
+        "run_cmd": "claude /loop {pattern}",
+    },
+    "gemini-cli": {
+        "icon": "♊",
+        "provider": "Google",
+        "description": "Gemini CLI by Google — open-source, 1M token context",
+        "run_cmd": "gemini /loop {pattern}",
+    },
+    "antigravity": {
+        "icon": "🪐",
+        "provider": "Google DeepMind",
+        "description": "Antigravity — advanced agentic AI coding assistant by Google DeepMind",
+        "run_cmd": "antigravity /loop {pattern}",
+    },
+    "cursor": {
+        "icon": "🖱️",
+        "provider": "Cursor / Anysphere",
+        "description": "AI-powered editor with agent mode",
+        "run_cmd": "cursor /loop {pattern}",
+    },
+    "opencode": {
+        "icon": "🔓",
+        "provider": "SST / Open-source",
+        "description": "OpenCode — model-agnostic open-source terminal coding agent (75+ providers)",
+        "run_cmd": "opencode run /loop {pattern}",
+    },
+    "codex": {
+        "icon": "🧮",
+        "provider": "OpenAI",
+        "description": "OpenAI Codex CLI agent",
+        "run_cmd": "codex /loop {pattern}",
     },
 }
 

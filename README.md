@@ -37,8 +37,13 @@ Browse the [Loop Catalog](#loop-catalog) below.
 # Interactive Scaffold — Python wizard (with fuzzy-search pattern picker)
 loop-wizard init .
 
-# Non-interactive Scaffold (bypassing the picker by specifying pattern and tool)
+# Non-interactive Scaffold — specify pattern + tool and skip prompts
 loop-wizard init . --pattern ci-sweeper --tool claude-code --yes
+loop-wizard init . --pattern ci-sweeper --tool antigravity --yes
+loop-wizard init . --pattern ci-sweeper --tool opencode --yes
+
+# Supported --tool values:
+#   claude-code   gemini-cli   antigravity   cursor   opencode   codex   claude
 
 # Or manual copy
 cp -r loops/ci-sweeper/ your-project/.loops/ci-sweeper/
@@ -171,6 +176,22 @@ loop-wizard status ci-sweeper
 loop-wizard status ci-sweeper --watch   # live auto-refresh every 30s
 loop-wizard status ci-sweeper --json    # machine-readable
 ```
+
+### Supported Agent Tools
+
+The `--tool` flag (and interactive picker) accepts any of these agents:
+
+| Tool | Provider | Run Command | API Key Secret |
+|------|----------|-------------|----------------|
+| `claude-code` | Anthropic | `claude /loop <pattern>` | `ANTHROPIC_API_KEY` |
+| `claude` | Anthropic | `claude /loop <pattern>` | `ANTHROPIC_API_KEY` |
+| `gemini-cli` | Google | `gemini /loop <pattern>` | `GEMINI_API_KEY` |
+| `antigravity` | Google DeepMind | `antigravity /loop <pattern>` | `GOOGLE_API_KEY` / `GEMINI_API_KEY` |
+| `cursor` | Cursor / Anysphere | `cursor /loop <pattern>` | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` |
+| `opencode` | SST / Open-source | `opencode run /loop <pattern>` | `OPENCODE_API_KEY` (+ provider key) |
+| `codex` | OpenAI | `codex /loop <pattern>` | `OPENAI_API_KEY` |
+
+> **OpenCode** is model-agnostic — it supports 75+ providers. Set whichever provider key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.) matches your chosen backend model.
 
 ---
 
