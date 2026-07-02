@@ -25,60 +25,77 @@ Instead of prompting an AI agent 40 times a day, you design a loop once and revi
 
 ---
 
-## Quick Start
+## Quick Start & Installation
 
-### 1. Pick a loop
-
-Browse the [Loop Catalog](#loop-catalog) below.
-
-### 2. Install it
+### Step 1: Install the Loop Wizard CLI
+Install the official unified CLI tool to manage and scaffold loops in your projects:
 
 ```bash
-# Interactive Scaffold — Python wizard (with fuzzy-search pattern picker)
-loop-wizard init .
+# Install via PyPI
+pip install loop-wizard
 
-# Non-interactive Scaffold — specify pattern + tool and skip prompts
-loop-wizard init . --pattern ci-sweeper --tool claude-code --yes
-loop-wizard init . --pattern ci-sweeper --tool antigravity --yes
-loop-wizard init . --pattern ci-sweeper --tool opencode --yes
-
-# Supported --tool values:
-#   claude-code   gemini-cli   antigravity   cursor   opencode   codex   claude
-
-# Or manual copy
-cp -r loops/ci-sweeper/ your-project/.loops/ci-sweeper/
+# Or for local development from source
+pip install -e tools/loop-wizard
 ```
 
-### 3. Configure
-
-Open `.loops/ci-sweeper/LOOP.md` and set your test command and budget.
-
-### 4. Dry run
-
+### Step 2: Initialize a Loop in your project
+Navigate to the root of your target project directory and run the initialization wizard:
 ```bash
+loop-wizard init .
+```
+This launches an interactive fuzzy-search picker to select a loop pattern (e.g., `ci-sweeper`, `daily-triage`, `doc-sync`) and choose your AI coding tool (e.g., `antigravity`, `claude-code`, `gemini-cli`).
+
+Alternatively, scaffold non-interactively:
+```bash
+loop-wizard init . --pattern ci-sweeper --tool antigravity --yes
+```
+
+### Step 3: Configure `LOOP.md`
+Open the generated folder `.loops/<pattern-name>/` in your project and edit the `LOOP.md` file to set up your specific verification command and token/cost budgets:
+```yaml
+verifier:
+  type: test_suite
+  command: "npm test"     # Set this to your test runner command
+budget:
+  max_tokens: 50000
+  max_cost_usd: 2.00      # Set your budget safety guardrails
+```
+
+### Step 4: Run a Dry Run (Safe Mode)
+Perform a safe test run to see the plan the AI agent would make without modifying any of your source code:
+```bash
+# For Antigravity
+antigravity /loop ci-sweeper --dry-run
+
+# For Claude Code
 claude /loop ci-sweeper --dry-run
 ```
 
-### 5. Run for real
-
+### Step 5: Run the Loop
+Start the autonomous fix-verify cycle:
 ```bash
-claude /loop ci-sweeper
+antigravity /loop ci-sweeper
 ```
 
-### 6. Check results
-
+### Step 6: Monitor Execution & Status
+Track execution statistics and state changes using the CLI status dashboard:
 ```bash
-# CLI — see what happened, what changed, and what's next
+# Check current results
 loop-wizard status ci-sweeper
 
-# Or watch for live updates (auto-refreshes every 30s)
+# Watch live updates (auto-refreshes every 30s)
 loop-wizard status ci-sweeper --watch
-
-# Machine-readable output for scripting
-loop-wizard status ci-sweeper --json
 ```
 
-You can also open `STATE.md` directly if you prefer.
+### Step 7: Automate on GitHub Actions
+The wizard automatically generated a GitHub Action workflow file in `.github/workflows/<pattern-name>.yml`. To deploy it to run on a schedule:
+1. Commit and push the `.loops/` configs and the workflow file to your GitHub repository:
+   ```bash
+   git add .loops/ .github/workflows/
+   git commit -m "ci: integrate ci-sweeper loop"
+   git push origin main
+   ```
+2. Add your AI tool API Key (e.g., `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`) as a **GitHub Secret** in your repository settings under `Settings -> Secrets and variables -> Actions`.
 
 ---
 
