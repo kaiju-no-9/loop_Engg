@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: loop-wizard
-Version: 0.1.0
+Version: 0.1.1
 Summary: Unified CLI wizard for Loop Engineering — scaffold, audit, estimate, and monitor AI agent loops
 License: MIT
 Requires-Python: >=3.9
